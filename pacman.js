@@ -22,8 +22,29 @@ for (let y = 0; y < height; y++) {
     }
 }
 
+// add simple maze walls
+for (let y = 2; y < height - 2; y += 4) {
+    for (let x = 2; x < width - 2; x++) {
+        if (x % 5 !== 0) {
+            board[y][x] = 1;
+        }
+    }
+}
+
+for (let x = 2; x < width - 2; x += 4) {
+    for (let y = 2; y < height - 2; y++) {
+        if (y % 5 !== 0) {
+            board[y][x] = 1;
+        }
+    }
+}
+
 const pacman = { x: 1, y: 1, dx: 0, dy: 0 };
-const ghost = { x: width - 2, y: height - 2, dx: 0, dy: 0 };
+const ghosts = [
+    { x: width - 2, y: height - 2, dx: 0, dy: 0, color: 'red' },
+    { x: width - 2, y: 1, dx: 0, dy: 0, color: 'pink' },
+    { x: 1, y: height - 2, dx: 0, dy: 0, color: 'cyan' }
+];
 
 function drawBoard() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -48,11 +69,13 @@ function drawBoard() {
     ctx.lineTo(pacman.x * tileSize + tileSize / 2, pacman.y * tileSize + tileSize / 2);
     ctx.fill();
 
-    // draw ghost
-    ctx.fillStyle = 'red';
-    ctx.beginPath();
-    ctx.arc(ghost.x * tileSize + tileSize / 2, ghost.y * tileSize + tileSize / 2, tileSize / 2 - 2, 0, 2 * Math.PI);
-    ctx.fill();
+    // draw ghosts
+    for (const g of ghosts) {
+        ctx.fillStyle = g.color;
+        ctx.beginPath();
+        ctx.arc(g.x * tileSize + tileSize / 2, g.y * tileSize + tileSize / 2, tileSize / 2 - 2, 0, 2 * Math.PI);
+        ctx.fill();
+    }
 }
 
 function update() {
@@ -71,25 +94,29 @@ function update() {
         scoreDiv.textContent = 'Score: ' + score;
     }
 
-    // move ghost randomly
+    // move ghosts randomly
     const dirs = [
         { dx: 1, dy: 0 },
         { dx: -1, dy: 0 },
         { dx: 0, dy: 1 },
         { dx: 0, dy: -1 }
     ];
-    const dir = dirs[Math.floor(Math.random() * dirs.length)];
-    const ghostNextX = ghost.x + dir.dx;
-    const ghostNextY = ghost.y + dir.dy;
-    if (board[ghostNextY][ghostNextX] !== 1) {
-        ghost.x = ghostNextX;
-        ghost.y = ghostNextY;
+    for (const g of ghosts) {
+        const dir = dirs[Math.floor(Math.random() * dirs.length)];
+        const ghostNextX = g.x + dir.dx;
+        const ghostNextY = g.y + dir.dy;
+        if (board[ghostNextY][ghostNextX] !== 1) {
+            g.x = ghostNextX;
+            g.y = ghostNextY;
+        }
     }
 
     // check collision
-    if (pacman.x === ghost.x && pacman.y === ghost.y) {
-        gameOver = true;
-        statusDiv.textContent = 'Game Over';
+    for (const g of ghosts) {
+        if (pacman.x === g.x && pacman.y === g.y) {
+            gameOver = true;
+            statusDiv.textContent = 'Game Over';
+        }
     }
 
     // check win
@@ -114,9 +141,15 @@ document.addEventListener('keydown', e => {
     }
 });
 
+const SPEED = 2; // lower speed by updating every other frame
+let frame = 0;
+
 function loop() {
-    update();
-    drawBoard();
+    frame++;
+    if (frame % SPEED === 0) {
+        update();
+        drawBoard();
+    }
     if (!gameOver) {
         requestAnimationFrame(loop);
     }
